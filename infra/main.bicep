@@ -1,4 +1,4 @@
-targetScope = 'subscription'
+targetScope = 'resourceGroup'
 
 @minLength(1)
 @maxLength(64)
@@ -34,20 +34,14 @@ param sqlAdminPassword string
 param appUserPassword string
 
 var abbrs = loadJsonContent('./abbreviations.json')
-var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
+var resourceToken = toLower(uniqueString(resourceGroup().id, environmentName, location))
 var tags = { 'azd-env-name': environmentName }
 
-// Organize resources in a resource group
-resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: !empty(resourceGroupName) ? resourceGroupName : '${abbrs.resourcesResourceGroups}${environmentName}'
-  location: location
-  tags: tags
-}
 
 // The application frontend
 module web './core/host/appservice.bicep' = {
   name: 'web'
-  scope: rg
+  //scope: rg
   params: {
     name: !empty(webServiceName) ? webServiceName : '${abbrs.webSitesAppService}web-${resourceToken}'
     location: location
@@ -66,7 +60,7 @@ module web './core/host/appservice.bicep' = {
 
 module apiKeyVaultAccess './core/security/keyvault-access.bicep' = {
   name: 'api-keyvault-access'
-  scope: rg
+  //scope: rg
   params: {
     keyVaultName: keyVault.outputs.name
     principalId: web.outputs.identityPrincipalId
@@ -76,7 +70,7 @@ module apiKeyVaultAccess './core/security/keyvault-access.bicep' = {
 // The application database: Catalog
 module catalogDb './core/database/sqlserver/sqlserver.bicep' = {
   name: 'sql-catalog'
-  scope: rg
+  //scope: rg
   params: {
     name: !empty(catalogDatabaseServerName) ? catalogDatabaseServerName : '${abbrs.sqlServers}catalog-${resourceToken}'
     databaseName: catalogDatabaseName
@@ -92,7 +86,7 @@ module catalogDb './core/database/sqlserver/sqlserver.bicep' = {
 // The application database: Identity
 module identityDb './core/database/sqlserver/sqlserver.bicep' = {
   name: 'sql-identity'
-  scope: rg
+  //scope: rg
   params: {
     name: !empty(identityDatabaseServerName) ? identityDatabaseServerName : '${abbrs.sqlServers}identity-${resourceToken}'
     databaseName: identityDatabaseName
@@ -108,7 +102,7 @@ module identityDb './core/database/sqlserver/sqlserver.bicep' = {
 // Store secrets in a keyvault
 module keyVault './core/security/keyvault.bicep' = {
   name: 'keyvault'
-  scope: rg
+  //scope: rg
   params: {
     name: !empty(keyVaultName) ? keyVaultName : '${abbrs.keyVaultVaults}${resourceToken}'
     location: location
@@ -120,7 +114,7 @@ module keyVault './core/security/keyvault.bicep' = {
 // Create an App Service Plan to group applications under the same payment plan and SKU
 module appServicePlan './core/host/appserviceplan.bicep' = {
   name: 'appserviceplan'
-  scope: rg
+  //scope: rg
   params: {
     name: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
     location: location
